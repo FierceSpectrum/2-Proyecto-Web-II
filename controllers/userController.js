@@ -18,14 +18,14 @@ const userVerificad = async (req, res) => {
     // Busca el usuario por ID
     User.findById(req.query.id)
       .then((user) => {
-        if ( user.state != null  ) {
+        if (user.state != null) {
           res.status(404);
           res.json({ error: "User not found" });
           return;
         }
 
         // Actualiza los campos del usuario
-        user.state = true
+        user.state = true;
 
         // Guarda los cambios del usuario
         user
@@ -154,7 +154,7 @@ const userPost = async (req, res) => {
     user.birthdate = req.body.birthdate;
     user.phone = req.body.phone;
     user.number_accounts = 6;
-    user.number_playlists = 1;
+    user.number_playlists = 5;
     user.state = null;
 
     // Guardar usuario en la base de datos

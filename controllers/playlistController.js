@@ -11,17 +11,17 @@ const Video = require("../models/videoModel");
  * @param {*} res
  */
 
-function verificarURLdeVideo(url) {
-  const regex =
-    /^(?:(?:https?:)?\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-  return regex.test(url);
-}
+// function verificarURLdeVideo(url) {
+//   const regex =
+//     /^(?:(?:https?:)?\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+//   return regex.test(url);
+// }
 
 const playlistPost = async (req, res) => {
   try {
     // Crear instancias de Playlist y Video
     const playlist = new Playlist();
-    const video = new Video();
+    // const video = new Video();
 
     /* 
     const user = User.findById(req.body.user);
@@ -35,34 +35,51 @@ const playlistPost = async (req, res) => {
     */
 
     // Verificar si ya existe una playlist para el usuario y si la URL del video es válida
-    const existingPlaylist = !(await Playlist.findOne({ user: req.body.user }));
-    const verificarurl = verificarURLdeVideo(req.body.url);
+    // const existingPlaylist = !(await Playlist.findOne({ user: req.body.user }));
+    // const verificarurl = verificarURLdeVideo(req.body.url);
     const user = await User.findById(req.body.user);
+    if (!user.state) {
+      res.status(404);
+      res.json({ error: "User doesnt exist" });
+      return;
+    }
 
-    console.log(user);
-    if (existingPlaylist && verificarurl && !!user) {
-      // Asignar valores de req.body a las instancias
-      playlist.user = req.body.user;
-      video.name = req.body.name;
-      video.url = req.body.url;
-      playlist.state = true;
-      playlist.playlist = video;
+    // if (verificarurl) {
+    //   res.status(422);
+    //   res.json({ error: "Invalid url" });
+    //   return;
+    // }
+    if (!(user.number_playlists > 0)) {
+      res.status(404);
+      res.json({ error: "You can't create more playlist" });
+      return;
+    }
+    // Asignar valores de req.body a las instancias
 
-      user.number_playlists--;
 
-      // Guardar la playlist y enviar la respuesta
-      await playlist
-        .save()
-        .then((data) => {
-          /* 
-          user.number_playlists --;
+    playlist.name = req.body.name;
+    playlist.user = req.body.user;
+    // video.name = req.body.name;
+    // video.url = req.body.url;
 
-          user
-            .save()
-            .then(() => {
-              res.status(201); // CREATED
-              res.header({
-                location: `/api/playlists/?id=${data.id}`,
+    playlist.state = true;
+    // playlist.playlist = video;
+    // Guardar la playlist y enviar la respuesta
+
+    await playlist
+      .save()
+      .then((data) => {
+        user.number_playlists--;
+
+        /* 
+      user.number_playlists --;
+      
+      user
+      .save()
+      .then(() => {
+        res.status(201); // CREATED
+        res.header({
+          location: `/api/playlists/?id=${data.id}`,
               });
               res.json(data);
             })
@@ -75,35 +92,30 @@ const playlistPost = async (req, res) => {
             }); 
           */
 
-          user
-            .save()
-            .then(() => {
-              res.status(201);
-              res.header({ location: `/api/playlists/?id=${data.id}` });
-              res.json(data);
-
-            })
-            .catch((err) => {
-              res.status(500);
-              res.json({
-                error: "There was an error saving the account",
-              });
+        user
+          .save()
+          .then(() => {
+            res.status(201);
+            res.header({ location: `/api/playlists/?id=${data.id}` });
+            res.json(data);
+          })
+          .catch((err) => {
+            res.status(500);
+            res.json({
+              error: "There was an error saving the account",
             });
-          // res.status(201); // CREATED
-          // res.header({ location: `/api/playlists/?id=${data.id}` });
-          // res.json(data);
-        })
-        .catch((err) => {
-          res.status(500);
-          res.json({ error: "There was an error saving the playlist" });
-        });
-    } else {
-      res.status(422);
-      res.json({ error: "Invalid data provided for playlist" });
-    }
+          });
+        // res.status(201); // CREATED
+        // res.header({ location: `/api/playlists/?id=${data.id}` });
+        // res.json(data);
+      })
+      .catch((err) => {
+        res.status(500);
+        res.json({ error: "There was an error saving the playlist" });
+      });
   } catch (err) {
     res.status(500);
-    console.log('?');
+    console.log("?");
     res.json({ error: "There was an error saving the playlist" });
   }
 };
