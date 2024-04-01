@@ -1,5 +1,75 @@
 const Account = require("../models/accountModel");
+const Playlist = require("../models/playlistModel");
 const User = require("../models/userModel");
+
+/**
+ * Creates a account
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+const addPlaylist = async (req, res) => {
+  // Verificar si se proporciona un ID de cuenta
+  if (req.query && req.query.id) {
+    // Buscar la cuenta por su ID
+    Account.findById(req.query.id)
+      .then(async (account) => {
+        // Verificar si la cuenta  está activa
+        if (!account.state) {
+          res.status(404);
+          res.json({ error: "Account not found" });
+          return;
+        }
+
+        // Validar los campos requeridos
+        try {
+          // Iterar sobre los campos que deseas validar
+          ["playlist"].forEach((field) => {
+            if (!req.body[field] || req.body[field].trim() === "") {
+              throw new Error(
+                `${field.charAt(0).toUpperCase() + field.slice(1)} is required`
+              );
+            }
+          });
+        } catch (error) {
+          res.status(400);
+          res.json({ error: error.message });
+          return;
+        }
+
+        // Validar si existe la playlist
+        const playlist = Playlist.findById(req.body.playlist);
+        if (!playlist.state) {
+          res.status(404);
+          res.json({ error: "Playlist not found" });
+          return;
+        }
+
+        // Agrega una playlist nueva
+        account.playlist.add(req.body.playlist)
+
+        // Guardar los cambios en la cuenta
+        account
+          .save()
+          .then((data) => {
+            res.status(200); // OK
+            res.header({ location: `/api/accounts/?id=${data._id}` });
+            res.json(data);
+          })
+          .catch((err) => {
+            res.status(500);
+            res.json({ error: "There was an error saving the account" });
+          });
+      })
+      .catch(function (err) {
+        res.status(404);
+        res.json({ error: "Account not found" });
+      });
+  } else {
+    res.status(400);
+    res.json({ error: "Account ID is required in query parameters" });
+  }
+};
 
 /**
  * Creates a account
@@ -32,7 +102,7 @@ const accountPost = async (req, res) => {
     });
 
     // Verificar si el usuario tiene cuentas disponibles y si el PIN es válido
-    const number = user.accounts != 0;
+    const number = user.number_accounts != 0;
     const validpin = req.body.pin.toString().length == 6;
 
     if (validpin && number) {
@@ -150,35 +220,23 @@ const accountGet = async (req, res) => {
  */
 const accountPatch = (req, res) => {
   // Verificar si se proporciona un ID de cuenta
-  console.log(1);
   if (req.query && req.query.id) {
     // Buscar la cuenta por su ID
-    console.log(2);
     Account.findById(req.query.id)
       .then((account) => {
         // Verificar si la cuenta  está activa
-        console.log(3);
         if (!account.state) {
           res.status(404);
           res.json({ error: "Account not found" });
           return;
         }
-        console.log(4);
         // Validar la longitud del PIN
-        console.log(req.body.pin);
-        console.log("?");
-        console.log(req.body.pin.toString());
-        console.log("?");
-        console.log(req.body.pin.toString().length);
-        console.log("?");
         const validpin = req.body.pin.toString().length === 6;
-        console.log("pin");
         if (!validpin) {
           res.status(422);
           res.json({ error: "Pin must be a 6-digit number" });
           return;
         }
-        console.log(5);
         // Validar los campos requeridos
         try {
           // Iterar sobre los campos que deseas validar
@@ -194,7 +252,7 @@ const accountPatch = (req, res) => {
           res.json({ error: error.message });
           return;
         }
-        console.log(6);
+
         // Actualizar los campos de la cuenta
         account.full_name = req.body.full_name
           ? req.body.full_name
@@ -203,12 +261,10 @@ const accountPatch = (req, res) => {
         account.age = req.body.age ? req.body.age : account.age;
         account.pin = req.body.pin ? req.body.pin : account.pin;
 
-        console.log(7);
         // Guardar los cambios en la cuenta
         account
           .save()
           .then((data) => {
-            console.log(8);
             res.status(200); // OK
             res.header({ location: `/api/accounts/?id=${data._id}` });
             res.json(data);
@@ -219,7 +275,6 @@ const accountPatch = (req, res) => {
           });
       })
       .catch(function (err) {
-        console.log("ya");
         res.status(404);
         res.json({ error: "Account not found" });
       });
@@ -240,7 +295,7 @@ const accountDelete = (req, res) => {
   if (req.query && req.query.id) {
     // Buscar la cuenta por su ID
     Account.findById(req.query.id)
-      .then((account) => {
+      .then(async (account) => {
         // Verificar si la cuenta está activa
         if (!account.state) {
           res.status(404);
@@ -251,10 +306,9 @@ const accountDelete = (req, res) => {
         account.state = false;
 
         // Guardar los cambios en la cuenta
+        const user = await User.findById(account.user);
 
-        const user = User.findById(account.user);
-
-        if (!user || !user.state) {
+        if (!user.state) {
           res.status(404);
           res.json({ error: "User not found" });
           return;
@@ -284,6 +338,7 @@ const accountDelete = (req, res) => {
 };
 
 module.exports = {
+  addPlaylist,
   accountGet,
   accountPost,
   accountPatch,

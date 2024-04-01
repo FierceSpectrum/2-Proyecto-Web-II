@@ -32,6 +32,7 @@ const {
 } = require("./controllers/videoController.js");
 
 const {
+  addPlaylist,
   accountPatch,
   accountPost,
   accountGet,
@@ -79,6 +80,7 @@ app.put("/api/videos", videoPatch);
 app.delete("/api/videos", videoDelete);
 
 // account
+app.patch("/api/accountsPlaylist", addPlaylist);
 app.get("/api/accounts", accountGet);
 app.post("/api/accounts", accountPost);
 app.patch("/api/accounts", accountPatch);

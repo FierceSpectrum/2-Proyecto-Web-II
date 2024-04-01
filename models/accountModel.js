@@ -10,10 +10,7 @@ const account = new Schema({
     type: mongoose.ObjectId,
     ref: "User",
   },
-  // playlist: {
-  //   type: mongoose.ObjectId,
-  //   ref: "Playlist",
-  // },
+  playlists: [],
   state: {type: Boolean},
 });
 

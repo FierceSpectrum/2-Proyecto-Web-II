@@ -281,13 +281,17 @@ const userPatch = (req, res) => {
 
         try {
           // Iterar sobre los campos que deseas validar
-          ["password", "name", "last_name", "country"].forEach((field) => {
-            if (!req.body[field] || req.body[field].trim() === "") {
-              throw new Error(
-                `${field.charAt(0).toUpperCase() + field.slice(1)} is required`
-              );
+          ["password", "name", "last_name", "country", "phone"].forEach(
+            (field) => {
+              if (!req.body[field] || req.body[field].trim() === "") {
+                throw new Error(
+                  `${
+                    field.charAt(0).toUpperCase() + field.slice(1)
+                  } is required`
+                );
+              }
             }
-          });
+          );
         } catch (error) {
           res.status(400);
           res.json({ error: error.message });
@@ -302,6 +306,7 @@ const userPatch = (req, res) => {
           ? req.body.last_name
           : user.last_name;
         user.country = req.body.country ? req.body.country : user.country;
+        user.phone = req.body.phone ? req.body.phone : user.phone;
         user.birthdate = req.body.birthdate ? req.body.birthdate : birthdate;
         user.accounts = req.body.accounts ? req.body.accounts : user.accounts;
         user.playlists = req.body.playlists
@@ -354,57 +359,81 @@ const userDelete = (req, res) => {
         // Guarda los cambios en el usuario
         user
           .save()
-          .then((user) => {
+          .then(async (user) => {
             //Cambia todos los estados de los demas modelos que esten ligados a este usuario a falso
 
-            Playlist.find({ state: true })
-              .then((playlists) => {
-                const playlist = playlists.filter(
-                  (playlist) => playlist.user == req.query.id
-                );
+            // Playlist.find({ state: true })
+            //   .then((playlists) => {
+            //     const playlist = playlists.filter(
+            //       (playlist) => playlist.user == req.query.id
+            //     );
 
-                playlist.forEach((playlist) => {
-                  playlist.state = false;
-                  playlist
-                    .save()
-                    .then((playlist) => {})
-                    .catch((err) => {
-                      res.status(422);
-                      res.json({
-                        error: "Internal server error",
-                      });
-                    });
-                });
+            //     playlist.forEach((playlist) => {
+            //       playlist.state = false;
+            //       playlist
+            //         .save()
+            //         .then((playlist) => {})
+            //         .catch((err) => {
+            //           res.status(422);
+            //           res.json({
+            //             error: "Internal server error",
+            //           });
+            //         });
+            //     });
+            //   })
+            //   .catch((err) => {
+            //     res.status(404);
+            //     res.json({ error: "Internal server error" });
+            //   });
+
+            // Account.find({ state: true })
+            //   .then((accounts) => {
+            //     // console.log(accounts)
+            //     const account = accounts.filter(
+            //       (account) => account.user == req.query.id
+            //     );
+
+            //     account.forEach((account) => {
+            //       account.state = false;
+            //       account
+            //         .save()
+            //         .then((account) => {})
+            //         .catch((err) => {
+            //           res.status(422);
+            //           res.json({
+            //             error: "There was an error deleting the playlist",
+            //           });
+            //         });
+            //     });
+            //   })
+            //   .catch((err) => {
+            //     res.status(404);
+            //     res.json({ error: "Playlist not found" });
+            //   });
+
+            // Desactivar playlists
+            const playlists = await Playlist.find({
+              user: req.query.id,
+              state: true,
+            });
+            await Promise.all(
+              playlists.map((playlist) => {
+                playlist.state = false;
+                return playlist.save();
               })
-              .catch((err) => {
-                res.status(404);
-                res.json({ error: "Internal server error" });
-              });
+            );
 
-            Account.find({ state: true })
-              .then((accounts) => {
-                // console.log(accounts)
-                const account = accounts.filter(
-                  (account) => account.user == req.query.id
-                );
-
-                account.forEach((account) => {
-                  account.state = false;
-                  account
-                    .save()
-                    .then((account) => {})
-                    .catch((err) => {
-                      res.status(422);
-                      res.json({
-                        error: "There was an error deleting the playlist",
-                      });
-                    });
-                });
+            // Desactivar cuentas
+            const accounts = await Account.find({
+              user: req.query.id,
+              state: true,
+            });
+            await Promise.all(
+              accounts.map((account) => {
+                account.state = false;
+                return account.save();
               })
-              .catch((err) => {
-                res.status(404);
-                res.json({ error: "Playlist not found" });
-              });
+            );
 
             res.status(204); //No content
             res.json({});
