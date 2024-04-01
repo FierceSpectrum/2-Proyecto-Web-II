@@ -2,13 +2,14 @@ const express = require("express");
 const app = express();
 // database connection
 const mongoose = require("mongoose");
-const db = mongoose.connect("mongodb://127.0.0.1:27017/users", {
+const db = mongoose.connect("mongodb://127.0.0.1:27017/users2", {
   useNewUrlParser: true,
   useFindAndModify: false,
   useUnifiedTopology: true,
 });
 
 const {
+  userVerificad,
   userLogin,
   userPatch,
   userPost,
@@ -55,6 +56,7 @@ app.use(
 // listen to the task request
 
 // user
+app.patch("/api/usersVerificad", userVerificad);
 app.post("/api/usersLogin", userLogin);
 app.get("/api/users", userGet);
 app.post("/api/users", userPost);
@@ -87,4 +89,4 @@ app.delete("/api/accounts", accountDelete);
 app.post("/api/Creatavatars", avatarCreat);
 app.get("/api/avatars", avatarGet);
 
-app.listen(3001, () => console.log(`Example app listening on port 3001!`));
+app.listen(3002, () => console.log(`Example app listening on port 3002!`));

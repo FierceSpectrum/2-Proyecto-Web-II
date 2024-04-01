@@ -13,9 +13,73 @@ const validarEmail = (email) => {
  * @param {*} res
  */
 
+const userVerificad = async (req, res) => {
+  if (req.query && req.query.id) {
+    // Busca el usuario por ID
+    User.findById(req.query.id)
+      .then((user) => {
+        if ( user.state != null  ) {
+          res.status(404);
+          res.json({ error: "User not found" });
+          return;
+        }
+
+        // Actualiza los campos del usuario
+        user.state = true
+
+        // Guarda los cambios del usuario
+        user
+          .save()
+          .then((updatedUser) => {
+            res.status(200); // OK
+            res.json(updatedUser);
+          })
+          .catch((err) => {
+            res.status(500);
+            res.json({ error: "Internal server error" });
+          });
+      })
+      .catch((err) => {
+        res.status(404);
+        res.json({ error: "User not found" });
+      });
+  } else {
+    res.status(400);
+    res.json({ error: "User ID is required in query parameters" });
+  }
+
+  // // Obtener todos los usuarios activos
+  // User.find({ state: true })
+  //   .then((users) => {
+  //     const user = users.filter(
+  //       (user) =>
+  //         user.email === req.body.email && user.password === req.body.password
+  //     );
+
+  //     if (!user) {
+  //       res.status(404);
+  //       res.json({ error: "User not found" });
+  //       return;
+  //     }
+  //     res.status(201);
+  //     res.json(user);
+  //   })
+  //   .catch((err) => {
+  //     res.status(500);
+  //     res.json({ "Internal server error": err });
+  //   });
+};
+
+/**
+ * Creates a user
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+
 const userLogin = async (req, res) => {
   // Obtener todos los usuarios activos
-  User.find({state: true})
+  User.find({ state: true })
     .then((users) => {
       const user = users.filter(
         (user) =>
@@ -24,7 +88,7 @@ const userLogin = async (req, res) => {
 
       if (!user) {
         res.status(404);
-        res.json({error: "User not found"});
+        res.json({ error: "User not found" });
         return;
       }
       res.status(201);
@@ -32,7 +96,7 @@ const userLogin = async (req, res) => {
     })
     .catch((err) => {
       res.status(500);
-      res.json({"Internal server error": err});
+      res.json({ "Internal server error": err });
     });
 };
 
@@ -48,7 +112,7 @@ const userPost = async (req, res) => {
 
   try {
     // Iterar sobre los campos que deseas validar
-    ["password", "name", "last_name", "country"].forEach((field) => {
+    ["password", "name", "last_name", "country", "phone"].forEach((field) => {
       if (!req.body[field] || req.body[field].trim() === "") {
         throw new Error(
           `${field.charAt(0).toUpperCase() + field.slice(1)} is required`
@@ -75,7 +139,7 @@ const userPost = async (req, res) => {
     }
 
     // Verificar si el correo electrónico ya está en uso
-    const usedemail = await User.findOne({email: req.body.email});
+    const usedemail = await User.findOne({ email: req.body.email });
     if (usedemail) {
       throw new Error("Email is already in use");
     }
@@ -88,26 +152,27 @@ const userPost = async (req, res) => {
     user.last_name = req.body.last_name;
     user.country = req.body.country;
     user.birthdate = req.body.birthdate;
+    user.phone = req.body.phone;
     user.number_accounts = 6;
     user.number_playlists = 1;
-    user.state = true;
+    user.state = null;
 
     // Guardar usuario en la base de datos
     await user
       .save()
       .then((data) => {
         res.status(201); // CREATED
-        res.header({location: `/api/users/?id=${data.id}`});
+        res.header({ location: `/api/users/?id=${data.id}` });
         res.json(data);
       })
       .catch((err) => {
         res.status(500);
-        console.log("error while saving the user", err);
-        res.json({error: error.message});
+        // console.log("error while saving the user", err);
+        res.json({ error: error.message });
       });
   } catch (error) {
     res.status(404);
-    res.json({error: error.message});
+    res.json({ error: error.message });
   }
 };
 
@@ -133,7 +198,7 @@ const userGet = (req, res) => {
         // Valida si el usuario esta activo
         if (!user.state) {
           res.status(404);
-          res.json({error: "User not found"});
+          res.json({ error: "User not found" });
           return;
         }
         res.status(200);
@@ -141,11 +206,11 @@ const userGet = (req, res) => {
       })
       .catch((err) => {
         res.status(500);
-        res.json({error: "Internal server error"});
+        res.json({ error: "Internal server error" });
       });
   } else {
     // Obtener todos los usuarios activos
-    User.find({state: true})
+    User.find({ state: true })
       .then((users) => {
         // const usersfilter = users.filter(user => user.state)
         res.status(200);
@@ -153,7 +218,7 @@ const userGet = (req, res) => {
       })
       .catch((err) => {
         res.status(500);
-        res.json({"Internal server error": err});
+        res.json({ "Internal server error": err });
       });
   }
 };
@@ -172,7 +237,7 @@ const userPatch = (req, res) => {
       .then((user) => {
         if (!user.state) {
           res.status(404);
-          res.json({error: "User not found"});
+          res.json({ error: "User not found" });
           return;
         }
 
@@ -208,7 +273,7 @@ const userPatch = (req, res) => {
           today.getFullYear() - birthdate.getFullYear() - (operador ? 1 : 0);
         if (!age) {
           res.status(422);
-          res.json({error: "Users must be at least 18 years old"});
+          res.json({ error: "Users must be at least 18 years old" });
           return;
         }
 
@@ -223,7 +288,7 @@ const userPatch = (req, res) => {
           });
         } catch (error) {
           res.status(400);
-          res.json({error: error.message});
+          res.json({ error: error.message });
           return;
         }
 
@@ -250,16 +315,16 @@ const userPatch = (req, res) => {
           })
           .catch((err) => {
             res.status(500);
-            res.json({error: "Internal server error"});
+            res.json({ error: "Internal server error" });
           });
       })
       .catch((err) => {
         res.status(404);
-        res.json({error: "User not found"});
+        res.json({ error: "User not found" });
       });
   } else {
     res.status(400);
-    res.json({error: "User ID is required in query parameters"});
+    res.json({ error: "User ID is required in query parameters" });
   }
 };
 
@@ -277,7 +342,7 @@ const userDelete = (req, res) => {
       .then((user) => {
         if (!user.state) {
           res.status(404);
-          res.json({error: "User not found"});
+          res.json({ error: "User not found" });
           return;
         }
 
@@ -293,20 +358,21 @@ const userDelete = (req, res) => {
           })
           .catch((err) => {
             res.status(500);
-            res.json({error: "Internal server error"});
+            res.json({ error: "Internal server error" });
           });
       })
       .catch((err) => {
         res.status(404);
-        res.json({error: "User not found"});
+        res.json({ error: "User not found" });
       });
   } else {
     res.status(400);
-    res.json({error: "User ID is required in query parameters"});
+    res.json({ error: "User ID is required in query parameters" });
   }
 };
 
 module.exports = {
+  userVerificad,
   userLogin,
   userGet,
   userPost,
