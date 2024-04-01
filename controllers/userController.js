@@ -1,4 +1,6 @@
 const User = require("../models/userModel");
+const Playlist = require("../models/playlistModel");
+const Account = require("../models/accountModel");
 
 const validarEmail = (email) => {
   // Expresión regular para validar un correo electrónico
@@ -352,7 +354,58 @@ const userDelete = (req, res) => {
         // Guarda los cambios en el usuario
         user
           .save()
-          .then(() => {
+          .then((user) => {
+            //Cambia todos los estados de los demas modelos que esten ligados a este usuario a falso
+
+            Playlist.find({ state: true })
+              .then((playlists) => {
+                const playlist = playlists.filter(
+                  (playlist) => playlist.user == req.query.id
+                );
+
+                playlist.forEach((playlist) => {
+                  playlist.state = false;
+                  playlist
+                    .save()
+                    .then((playlist) => {})
+                    .catch((err) => {
+                      res.status(422);
+                      res.json({
+                        error: "Internal server error",
+                      });
+                    });
+                });
+              })
+              .catch((err) => {
+                res.status(404);
+                res.json({ error: "Internal server error" });
+              });
+
+            Account.find({ state: true })
+              .then((accounts) => {
+                // console.log(accounts)
+                const account = accounts.filter(
+                  (account) => account.user == req.query.id
+                );
+
+                account.forEach((account) => {
+                  account.state = false;
+                  account
+                    .save()
+                    .then((account) => {})
+                    .catch((err) => {
+                      res.status(422);
+                      res.json({
+                        error: "There was an error deleting the playlist",
+                      });
+                    });
+                });
+              })
+              .catch((err) => {
+                res.status(404);
+                res.json({ error: "Playlist not found" });
+              });
+
             res.status(204); //No content
             res.json({});
           })

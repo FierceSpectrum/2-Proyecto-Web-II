@@ -88,23 +88,13 @@ const accountGet = async (req, res) => {
   try {
     // Si se requieren todas las cuentas de un usuario específico por ID de usuario
     if (req.query && req.query.iduser) {
-      /* User.findById(req.query.iduser)
-      .then((user) => {
-        if (!user.state) {
-          res.status(404);
-          res.json({error: "User not found"});
-          return;
-        }
+      const user = await User.findById(req.query.iduser);
 
-        const accounts = user.account.filter(
-          (account) => account.state == true
-        );
-        res.json(accounts);
-      })
-      .catch((err) => {
+      if (!user.state) {
         res.status(404);
-        res.json({error: "Account doesnt exist"});
-      }); */
+        res.json({ error: "User not found" });
+        return;
+      }
 
       Account.find({ user: req.query.iduser, state: true })
         .then((accounts) => {

@@ -16,6 +16,16 @@ function verificarURLdeVideo(url) {
 
 const videoPost = async (req, res) => {
   try {
+    // Encontrar la lista de reproducción del usuario por su ID
+    const playlist = await Playlist.findById(req.body.playlist);
+
+    // Verificar si se encontró la lista de reproducción del usuario
+    if (!playlist) {
+      res.status(404);
+      res.json({ error: "User playlist not found" });
+      return;
+    }
+
     // Validar los campos requeridos
     ["name", "url"].forEach((field) => {
       if (!req.body[field] || req.body[field].trim() === "") {
@@ -30,16 +40,6 @@ const videoPost = async (req, res) => {
     if (!verificarurl) {
       res.status(422);
       res.json({ error: "Invalid video URL" });
-      return;
-    }
-
-    // Encontrar la lista de reproducción del usuario por su ID
-    const playlist = await Playlist.findOne({ user: req.body.user });
-
-    // Verificar si se encontró la lista de reproducción del usuario
-    if (!playlist) {
-      res.status(404);
-      res.json({ error: "User playlist not found" });
       return;
     }
 
