@@ -18,7 +18,7 @@ const {
 } = require("./controllers/userController.js");
 
 const {
-  // playlistPatch,
+  playlistPatch,
   playlistPost,
   playlistGet,
   playlistDelete,
@@ -33,6 +33,7 @@ const {
 
 const {
   addPlaylist,
+  deletePlaylist,
   accountPatch,
   accountPost,
   accountGet,
@@ -68,8 +69,8 @@ app.delete("/api/users", userDelete);
 // playlist
 app.get("/api/playlists", playlistGet);
 app.post("/api/playlists", playlistPost);
-// app.patch("/api/playlists", playlistPatch);
-// app.put("/api/playlists", playlistPatch);
+app.patch("/api/playlists", playlistPatch);
+app.put("/api/playlists", playlistPatch);
 app.delete("/api/playlists", playlistDelete);
 
 // video
@@ -81,6 +82,7 @@ app.delete("/api/videos", videoDelete);
 
 // account
 app.patch("/api/accountsPlaylist", addPlaylist);
+app.delete("/api/accountsPlaylist", deletePlaylist);
 app.get("/api/accounts", accountGet);
 app.post("/api/accounts", accountPost);
 app.patch("/api/accounts", accountPatch);

@@ -38,16 +38,28 @@ const addPlaylist = async (req, res) => {
         }
 
         // Validar si existe la playlist
-        const playlist = Playlist.findById(req.body.playlist);
+        const playlist = await Playlist.findById(req.body.playlist);
         if (!playlist.state) {
           res.status(404);
           res.json({ error: "Playlist not found" });
           return;
         }
 
-        // Agrega una playlist nueva
-        account.playlist.add(req.body.playlist)
+        if (!(account.user.toString() === playlist.user.toString())) {
+          res.status(404);
+          res.json({ error: "Playlist not found" });
+          return;
+        }
 
+        // Agrega una playlist nueva
+        const lista = account.playlists;
+        if (lista.includes(req.body.playlist)) {
+          res.status(404);
+          res.json({ error: "This playlist is already" });
+          return;
+        }
+        lista.push(req.body.playlist);
+        // account.playlists = list;
         // Guardar los cambios en la cuenta
         account
           .save()
@@ -64,6 +76,66 @@ const addPlaylist = async (req, res) => {
       .catch(function (err) {
         res.status(404);
         res.json({ error: "Account not found" });
+      });
+  } else {
+    res.status(400);
+    res.json({ error: "Account ID is required in query parameters" });
+  }
+};
+
+/**
+ * Creates a account
+ *
+ * @param {*} req
+ * @param {*} res
+ */
+const deletePlaylist = async (req, res) => {
+  // Verificar si se proporciona un ID de cuenta
+  if (req.query && req.query.id && req.query.idplaylist) {
+    // Buscar la cuenta por su ID
+    Account.findById(req.query.id)
+      .then(async (account) => {
+        // Verificar si la cuenta  está activa
+        if (!account.state) {
+          res.status(404);
+          res.json({ error: "Account not found" });
+          return;
+        }
+
+        // Validar si existe la playlist
+        const playlist = await Playlist.findById(req.query.idplaylist);
+        if (!playlist.state) {
+          res.status(404);
+          res.json({ error: "Playlist not found" });
+          return;
+        }
+
+        // Agrega una playlist nueva
+        const lista = account.playlists;
+        if (!lista.includes(req.query.idplaylist)) {
+          res.status(404);
+          res.json({ error: "Playlist not found" });
+          return;
+        }
+        const indice = lista.indexOf(req.query.idplaylist);
+        lista.splice(indice, 1);
+        // account.playlists = list;
+        // Guardar los cambios en la cuenta
+        account
+          .save()
+          .then((data) => {
+            res.status(200); // OK
+            res.header({ location: `/api/accounts/?id=${data._id}` });
+            res.json(data);
+          })
+          .catch((err) => {
+            res.status(500);
+            res.json({ error: "There was an error saving the account" });
+          });
+      })
+      .catch(function (err) {
+        res.status(404);
+        res.json({ error: "Server error" });
       });
   } else {
     res.status(400);
@@ -314,18 +386,24 @@ const accountDelete = (req, res) => {
           return;
         }
         user.number_accounts++;
-        user.save().then(() => {
-          account
-            .save()
-            .then(() => {
-              res.status(200); //No content
-              res.json({});
-            })
-            .catch((err) => {
-              res.status(422);
-              res.json({ error: "There was an error deleting the account" });
-            });
-        });
+        user
+          .save()
+          .then(() => {
+            account
+              .save()
+              .then(() => {
+                res.status(200); //No content
+                res.json({});
+              })
+              .catch((err) => {
+                res.status(422);
+                res.json({ error: "There was an error deleting the account" });
+              });
+          })
+          .catch((err) => {
+            res.status(422);
+            res.json({ error: "There was an error deleting the account" });
+          });
       })
       .catch((err) => {
         res.status(404);
@@ -339,6 +417,7 @@ const accountDelete = (req, res) => {
 
 module.exports = {
   addPlaylist,
+  deletePlaylist,
   accountGet,
   accountPost,
   accountPatch,
