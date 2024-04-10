@@ -8,7 +8,7 @@ const express = require("express");
 const app = express();
 
 const { transporter } = require("./SendEmail.js");
-
+// const nodemailer = require("nodemailer");
 // database connection
 const mongoose = require("mongoose");
 const db = mongoose.connect("mongodb://127.0.0.1:27017/users2", {
