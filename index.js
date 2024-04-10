@@ -1,5 +1,9 @@
 require("dotenv").config();
 
+const accountSid = process.env.TWILIO_AUTH_ID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = require("twilio")(accountSid, authToken);
+
 const jwt = require("jsonwebtoken");
 
 const User = require("./models/userModel");
@@ -7,7 +11,7 @@ const User = require("./models/userModel");
 const express = require("express");
 const app = express();
 
-const { transporter } = require("./SendEmail.js");
+const { transporter } = require("./config.js");
 // const nodemailer = require("nodemailer");
 // database connection
 const mongoose = require("mongoose");
@@ -72,6 +76,7 @@ app.post("/api/users", (req, res) => {
   userPost(req, res) // Llama a userPost
     .then(async (response) => {
       if (!response) {
+        // res.send({});
         return;
       }
 
@@ -115,7 +120,7 @@ app.post("/api/users", (req, res) => {
 // login with JWT
 app.post("/api/session", function (req, res) {
   User.find({ state: true })
-    .then((users) => {
+    .then(async (users) => {
       const user = users.filter(
         (user) =>
           user.email === req.body.email && user.password === req.body.password
@@ -125,16 +130,30 @@ app.post("/api/session", function (req, res) {
         res.json({ error: "Invalid username or password" });
         return;
       }
-
       const data = user[0];
+      console.log("sms");
+      console.log(data.phone);
+      const verifySid = "VAd89e087717851f2c9ad73df2a98c36e1";
+      await client.verify.v2
+        .services(verifySid)
+        .verifications.create({
+          body: "TubeKids Pro",
+          to: data.phone,
+          channel: "sms",
+        })
+        .then((verification) => {
+          console.log(verification.status);
+          return;
+        });
+      console.log("smsf");
       const dateNow = new Date();
-      const dateAfterOneMinute = new Date(dateNow.getTime() + 600000);
+      const dateAfterOneMinute = new Date(dateNow.getTime() + 120000);
 
       const token = jwt.sign(
         {
           userID: data._id,
           name: data.name,
-          permission: ["create", "edit", "delete"],
+          permission: ["authentication"],
           expiration: dateAfterOneMinute,
           pin: data.pin,
           phone: data.phone,
@@ -145,12 +164,94 @@ app.post("/api/session", function (req, res) {
       );
 
       res.status(201);
-      res.json({ token, user: data });
+      res.json(token);
     })
     .catch((err) => {
       res.status(500);
       res.json({ "Internal server error": err });
     });
+});
+
+app.post("/api/authentication", function (req, res) {
+  console.log("si");
+  if (req.headers["authorization"]) {
+    console.log("he");
+    const authToken = req.headers["authorization"].split(" ")[1];
+    console.log("token");
+    try {
+      jwt.verify(authToken, theSecretKey, async (err, decodedToken) => {
+        if (err || !decodedToken) {
+          res.status(401);
+          res.send({
+            error: "Unauthorized",
+          });
+          return;
+        }
+
+        const currentDate = new Date();
+        const expirationDate = new Date(decodedToken.expiration);
+        console.log("time");
+        if (
+          currentDate.getTime() > expirationDate.getTime() ||
+          decodedToken.permission[0] !== "authentication"
+        ) {
+          res.status(422);
+          res.send({
+            error: "Unauthorized",
+          });
+          return;
+        }
+        console.log("code");
+        if (!req.body.code) {
+          res.status(404);
+          res.json({
+            error: "Code is required",
+          });
+          return;
+        }
+        try {
+          console.log("sms");
+          const verifySid = "VAd89e087717851f2c9ad73df2a98c36e1";
+          await client.verify.v2
+            .services(verifySid)
+            .verificationChecks.create({
+              to: decodedToken.phone,
+              code: req.body.code,
+            })
+            .then((verification_check) => {
+              console.log(verification_check.status);
+              if (verification_check.status !== "approved") {
+                throw new Error("Invalid code");
+              }
+            });
+
+          console.log("token2");
+          const dateNow = new Date();
+          const dateAfterOneMinute = new Date(dateNow.getTime() + 600000);
+          decodedToken.expiration = dateAfterOneMinute;
+          decodedToken.permission = ["create", "edit", "delete"];
+          const token = jwt.sign(decodedToken, theSecretKey);
+          console.log("si!");
+          res.status(201);
+          res.json({ token, user: decodedToken });
+          return;
+        } catch (error) {
+          res.status(404);
+          res.json({ error: error });
+          return;
+        }
+      });
+    } catch (e) {
+      console.error("There was an error", e);
+      res.status(401);
+      res.send({ error: "Unauthorized" });
+
+      return;
+    }
+  } else {
+    res.status(401);
+    res.send({ error: "Unauthorized" });
+  }
 });
 
 // JWT Authentication middleware

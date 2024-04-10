@@ -152,12 +152,12 @@ const userPost = async (req, res) => {
       throw new Error("User must be at least 18 years old");
     }
 
+    
     // Verificar si el correo electrónico ya está en uso
     const usedemail = await User.findOne({ email: req.body.email });
     if (usedemail) {
       throw new Error("Email is already in use");
     }
-
     // Asignar valores al usuario
     user.email = req.body.email;
     user.password = req.body.password;
@@ -186,6 +186,7 @@ const userPost = async (req, res) => {
         res.json({ error: error.message });
       });
   } catch (error) {
+    console.log(error.message)
     res.status(404);
     res.json({ error: error.message });
   }
