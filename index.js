@@ -1,10 +1,14 @@
 require("dotenv").config();
+
 const jwt = require("jsonwebtoken");
 
 const User = require("./models/userModel");
 
 const express = require("express");
 const app = express();
+
+const { transporter } = require("./SendEmail.js");
+// const nodemailer = require("nodemailer");
 // database connection
 const mongoose = require("mongoose");
 const db = mongoose.connect("mongodb://127.0.0.1:27017/users2", {
@@ -62,8 +66,51 @@ app.use(
     methods: "*",
   })
 );
+app.patch("/api/usersVerificad", userVerificad);
 
-app.post("/api/users", userPost);
+app.post("/api/users", (req, res) => {
+  userPost(req, res) // Llama a userPost
+    .then(async (response) => {
+      if (!response) {
+        return;
+      }
+
+      const mailoptions = {
+        from: "TubeKidsPro 👻", // sender address
+        to: response.email, // list of receivers
+        subject: "Confirm Your Account ✔", // Subject line
+        text: "Confirm Your Account?", // plain text body
+        html: `
+        <div style="display: flex; justify-content: center; padding-top: 1rem;">
+          <a
+            href="http://localhost:3000/ConfirmAccount/${response.id}"
+            style="background-color: rgb(20, 129, 255); color: #ffffff; padding: 10px; border-radius: 10px; text-decoration: none; font-size: 1.2rem;"
+            onmouseover="this.style.backgroundColor='#0362ce'; this.style.color='#b1b1b1'"
+            onmouseout="this.style.backgroundColor='rgb(20, 129, 255)'; this.style.color='#ffffff'"
+          >
+            Confirma tu cuenta aquí
+          </a>
+        </div>
+        `, // html body
+      };
+      await transporter.sendMail(mailoptions, (error, info) => {
+        if (error) {
+          console.log("error");
+          console.log(error);
+        } else {
+          console.log("info");
+          console.log(info);
+        }
+      });
+      console.log("exito?");
+    })
+    .catch((error) => {
+      // Manejo de errores si userPost falla
+      console.error("Hubo un error en la operación de usuario:", error);
+      // Envía una respuesta de error al cliente si es necesario
+      // res.status(500).send("Hubo un error en la operación de usuario.");
+    });
+});
 
 // login with JWT
 app.post("/api/session", function (req, res) {
@@ -81,7 +128,7 @@ app.post("/api/session", function (req, res) {
 
       const data = user[0];
       const dateNow = new Date();
-      const dateAfterOneMinute = new Date(dateNow.getTime() + 60000);
+      const dateAfterOneMinute = new Date(dateNow.getTime() + 600000);
 
       const token = jwt.sign(
         {
@@ -114,7 +161,7 @@ app.use(function (req, res, next) {
       jwt.verify(authToken, theSecretKey, (err, decodedToken) => {
         if (err || !decodedToken) {
           res.status(401);
-          res.json({
+          res.send({
             error: "Unauthorized",
           });
           return;
@@ -125,12 +172,11 @@ app.use(function (req, res, next) {
 
         if (currentDate.getTime() > expirationDate.getTime()) {
           res.status(401);
-          res.json({
+          res.send({
             error: "Unauthorized",
           });
           return;
         }
-        console.log("Welcome", decodedToken.name);
         next();
       });
     } catch (e) {
@@ -152,7 +198,6 @@ app.use(function (req, res, next) {
 // listen to the task request
 
 // user
-app.patch("/api/usersVerificad", userVerificad);
 app.post("/api/usersLogin", userLogin);
 app.get("/api/users", userGet);
 app.patch("/api/users", userPatch);

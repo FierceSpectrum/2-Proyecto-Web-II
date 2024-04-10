@@ -16,19 +16,25 @@ const validarEmail = (email) => {
  */
 
 const userVerificad = async (req, res) => {
-  if (req.query && req.query.id) {
-    // Busca el usuario por ID
-    User.findById(req.query.id)
-      .then((user) => {
-        if (user.state != null) {
-          res.status(404);
-          res.json({ error: "User not found" });
-          return;
-        }
+  try {
+    if (req.query && req.query.id && req.query.valid) {
+      // Busca el usuario por ID
 
+      const user = await User.findById(req.query.id);
+
+      if (!user) {
+        res.status(404);
+        res.json({ error: "User not found" });
+        return;
+      }
+      if (user.state != null) {
+        res.status(404);
+        res.json({ error: "User not found" });
+        return;
+      }
+      if (req.query.valid === "true") {
         // Actualiza los campos del usuario
         user.state = true;
-
         // Guarda los cambios del usuario
         user
           .save()
@@ -40,14 +46,19 @@ const userVerificad = async (req, res) => {
             res.status(500);
             res.json({ error: "Internal server error" });
           });
-      })
-      .catch((err) => {
-        res.status(404);
-        res.json({ error: "User not found" });
-      });
-  } else {
-    res.status(400);
-    res.json({ error: "User ID is required in query parameters" });
+        return;
+      }
+
+      res.status(200); // OK
+      res.json(user);
+      return;
+    } else {
+      res.status(400);
+      res.json({ error: "User ID is required in query parameters" });
+    }
+  } catch (error) {
+    res.status(500);
+    res.json({ error: "Internal server error" });
   }
 
   // // Obtener todos los usuarios activos
@@ -110,6 +121,7 @@ const userLogin = async (req, res) => {
  */
 
 const userPost = async (req, res) => {
+  let respuesta;
   const user = new User();
 
   try {
@@ -166,16 +178,18 @@ const userPost = async (req, res) => {
         res.status(201); // CREATED
         res.header({ location: `/api/users/?id=${data.id}` });
         res.json(data);
+        respuesta = data;
       })
       .catch((err) => {
         res.status(500);
-        // console.log("error while saving the user", err);
+        //
         res.json({ error: error.message });
       });
   } catch (error) {
     res.status(404);
     res.json({ error: error.message });
   }
+  return respuesta;
 };
 
 // Función para calcular la edad
@@ -388,7 +402,7 @@ const userDelete = (req, res) => {
 
             // Account.find({ state: true })
             //   .then((accounts) => {
-            //     // console.log(accounts)
+            //     //
             //     const account = accounts.filter(
             //       (account) => account.user == req.query.id
             //     );
