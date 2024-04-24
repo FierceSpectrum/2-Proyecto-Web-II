@@ -24,13 +24,14 @@ const addPlaylist = async (req, res) => {
         // Validar los campos requeridos
         try {
           // Iterar sobre los campos que deseas validar
-          ["playlist"].forEach((field) => {
-            if (!req.body[field] || req.body[field].trim() === "") {
-              throw new Error(
-                `${field.charAt(0).toUpperCase() + field.slice(1)} is required`
-              );
-            }
-          });
+          console.log(req.body);
+          console.log(req.body.playlist);
+          if (!req.body.playlist || req.body.playlist.trim() === "") {
+            throw new Error(
+              `${field.charAt(0).toUpperCase() + field.slice(1)} is required`
+            );
+          }
+          console.log(req.body.playlist);
         } catch (error) {
           res.status(400);
           res.json({ error: error.message });

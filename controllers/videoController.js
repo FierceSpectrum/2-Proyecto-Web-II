@@ -47,6 +47,7 @@ const videoPost = async (req, res) => {
     const video = new Video();
     video.name = req.body.name;
     video.url = req.body.url;
+    video.description = req.body.description ? req.body.description : "";
 
     // Agregar el nuevo video a la lista de reproducción del usuario
     playlist.playlist.push(video);
@@ -186,6 +187,7 @@ const videoPatch = async (req, res) => {
           // Actualiza los campos del video
           video.name = req.body.name ? req.body.name : playlist.name;
           video.url = req.body.url ? req.body.url : playlist.url;
+          video.description = req.body.description ? req.body.description : "";
 
           // Verificar si se encontró el video que se va a actualizar
           if (!video) {

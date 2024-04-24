@@ -227,7 +227,7 @@ app.post("/api/authentication", function (req, res) {
 
           console.log("token2");
           const dateNow = new Date();
-          const dateAfterOneMinute = new Date(dateNow.getTime() + 600000);
+          const dateAfterOneMinute = new Date(dateNow.getTime() + 6000000);
           decodedToken.expiration = dateAfterOneMinute;
           decodedToken.permission = ["create", "edit", "delete"];
           const token = jwt.sign(decodedToken, theSecretKey);
